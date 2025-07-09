@@ -17,6 +17,10 @@ PICO_SDK_PATH=/path/to/pico-sdk cmake -S . -B build
 cmake --build build
 ```
 
+## Default Pinout
+* Trigger (Input): Pin 9
+* Glitch Pulse (Output): Pin 6
+
 ## Command list
 Fully compatible with FPGA-based [chipfail-glitcher](https://github.com/unixb0y/chipfail-glitcher), but not all commands are functional yet. 
 ```
