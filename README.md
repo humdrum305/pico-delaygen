@@ -1,37 +1,67 @@
 # pico-delaygen
 
-Delay generator will appear as a new serial device under `/dev/tty.usb*` with default baud rate of 115200.  
-As of now, only the commands marked with a tick symbol below, are supported.
+`pico-delaygen` is a glitch delay generator using the Raspberry Pi Pico, compatible with the FPGA-based [chipfail-glitcher](https://github.com/unixb0y/chipfail-glitcher).  
+`chipfail-glitcher` is an open-source hardware fault injection framework that uses an FPGA to inject precise voltage or clock glitches into microcontrollers for security testing.
+It automates glitch campaigns by sweeping parameters like delay and pulse width to induce faults such as instruction skips or protection bypasses.
 
-Recommended way of operation:
-1. Set up serial connection
-2. Soft reset (optional)
-3. Set pulse width in clock cycles (default: 8ns each)
-4. Set delay in clock cycles (default: 8ns each)
-5. Arm the device using "glitch" command
-6. Wait for state to return to 0 (idle)
+---
+## 🔌 Getting Started
+### 1. Serial Setup
+- Connect to the device via UART (**Big Endian**). For UART terminal emulators, this is not standard.
+- Default baud rate: **115200**
+- It appears as a serial device under `/dev/tty.usb*`.
+- [Optional] Perform a Soft Reset using the reset command.
 
-## Compilation
-```zsh
+### 2. Basic Workflow
+1. Set **pulse width** in clock cycles (default: `8 ns`/cycle) (see section Commands).
+2. Set **delay** in clock cycles.
+3. Arm the glitcher with the **glitch command**.
+4. Wait for state to return to 0 (idle).
+
+> 💡 A working example: [chipfail-glitcher.ipynb](https://github.com/unixb0y/chipfail-glitcher/blob/master/jupyter/chipfail-glitcher.ipynb)
+
+---
+
+## 💻 Commands
+
+| Command Name        | Shortcuts         | Code | Status |
+|---------------------|------------------|------|--------|
+| Soft Reset          | `@`, `r`         | 64   | ✓      |
+| Toggle LED          | `A`, `t`         | 65   | ✓      |
+| Power Cycle         | `B`              | 66   | ✗      |
+| Set Pulse Width     | `C`, `p`         | 67   | ✓      |
+| Set Delay           | `D`, `d`         | 68   | ✓      |
+| Set Power Pulse     | `E`              | 69   | ✗      |
+| Glitch              | `F`, `g`         | 70   | ✓      |
+| Read GPIO 0–7       | `G`              | 71   | ✗      |
+| Enable Power Cycle  | `H`              | 72   | ✗      |
+| Get State of Glitch           | `I`, `s`         | 73   | ✓      |
+
+---
+
+## ⚙️ Configuration Options
+
+Adjust `main.h` to modify behavior:
+
+- `#define COMP_HAND` — Use **Little Endian** (for UART terminal emulators).
+- `#define DEBUG` — Enable verbose UART output (reduces timing accuracy).
+- `#define USE_PDND` — Support [Pico Debug’n’Dump PCB](https://pdnd.stacksmashing.net/)
+### Default Pinout
+- **Trigger (Input):** Pin 9  
+- **Glitch Pulse (Output):** Pin 6
+
+Change the Pinout to your liking in `main.c`.
+
+---
+
+## 📦 Building
+Install and set-up [pico-sdk](https://github.com/raspberrypi/pico-sdk) first.
+```bash
 PICO_SDK_PATH=/path/to/pico-sdk cmake -S . -B build
 cmake --build build
 ```
 
-## Default Pinout
-* Trigger (Input): Pin 9
-* Glitch Pulse (Output): Pin 6
+## ⚠️ Potential Issues
 
-## Command list
-Fully compatible with FPGA-based [chipfail-glitcher](https://github.com/unixb0y/chipfail-glitcher), but not all commands are functional yet. 
-```
-Soft Reset         = b"@" = 64 = 0x40 ✓ 
-Toggle LED         = b"A" = 65 = 0x41 ✓ 
-Power Cycle        = b"B" = 66 = 0x42  
-Set Pulse Width    = b"C" = 67 = 0x43 ✓ 
-Set Delay          = b"D" = 68 = 0x44 ✓  
-Set Power Pulse    = b"E" = 69 = 0x45  
-Glitch             = b"F" = 70 = 0x46 ✓  
-Read GPIO 0-7      = b"G" = 71 = 0x47  
-Enable power cycle = b"H" = 72 = 0x48  
-Get state          = b"I" = 73 = 0x49 ✓  
-```
+- UART terminal emulators may not trigger `tud_cdc_connected`, causing the Pico to remain in IDLE state.
+- UART terminal emulators typically send characters in **Little Endian** format. To support this, undefine `COMP_HAND` in `main.h`. See [Configuration Options](#configuration-options) for details.

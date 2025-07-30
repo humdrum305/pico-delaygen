@@ -19,6 +19,7 @@ pico_sdk_init()
 add_executable(${PROJECT_NAME}
     src/main.c
     src/oc.c
+   src/main.h
 )
 
 # pull in common dependencies
@@ -27,7 +28,6 @@ target_link_libraries(${PROJECT_NAME}
     hardware_pio
     pico_unique_id
 )
-
 # Include header files
 #target_include_directories(${PROJECT_NAME} 
 #    PRIVATE 

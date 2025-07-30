@@ -2,3 +2,4 @@
 *.swp
 src/*.swp
 build
+.vscode/
