@@ -16,13 +16,14 @@ It automates glitch campaigns by sweeping parameters like delay and pulse width 
 1. Set **pulse width** in clock cycles (default: `8 ns`/cycle) (see section Commands).
 2. Set **delay** in clock cycles.
 3. Arm the glitcher with the **glitch command**.
-4. Wait for state to return to 0 (idle).
+4. Wait for **state** to return to 0 (idle).
 
 > 💡 A working example: [chipfail-glitcher.ipynb](https://github.com/unixb0y/chipfail-glitcher/blob/master/jupyter/chipfail-glitcher.ipynb)
 
 ---
 
 ## 💻 Commands
+Alternative commands for hand driven mode.
 
 | Command Name        | Shortcuts         | Code | Status |
 |---------------------|------------------|------|--------|
@@ -41,16 +42,16 @@ It automates glitch campaigns by sweeping parameters like delay and pulse width 
 
 ## ⚙️ Configuration Options
 
-Adjust `main.h` to modify behavior:
+Adjust `src/main.h` to modify behavior:
 
 - `#define COMP_HAND` — Use **Little Endian** (for UART terminal emulators).
-- `#define DEBUG` — Enable verbose UART output (reduces timing accuracy).
+- `#define DEBUG` — Enable verbose UART output.
 - `#define USE_PDND` — Support [Pico Debug’n’Dump PCB](https://pdnd.stacksmashing.net/)
 ### Default Pinout
 - **Trigger (Input):** Pin 9  
 - **Glitch Pulse (Output):** Pin 6
 
-Change the Pinout to your liking in `main.c`.
+Change the Pinout to your liking in `src/main.c`.
 
 ---
 
@@ -63,5 +64,5 @@ cmake --build build
 
 ## ⚠️ Potential Issues
 
-- UART terminal emulators may not trigger `tud_cdc_connected`, causing the Pico to remain in IDLE state.
-- UART terminal emulators typically send characters in **Little Endian** format. To support this, undefine `COMP_HAND` in `main.h`. See [Configuration Options](#configuration-options) for details.
+- UART terminal emulators may not trigger `tud_cdc_connected`, causing the Pico to resrc/main in IDLE state.
+- UART terminal emulators typically send characters in **Little Endian** format. To support this, undefine `COMP_HAND` in `src/main.h` (see Configuration Options).(#configuration-options) for details.

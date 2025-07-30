@@ -17,7 +17,7 @@
 #define DEBUG_PRINT(fmt, args...) /* Don't do anything in release builds */
 #endif
 
-// efine COMP_HAND for pico-delaygen in Littll Endian for UART terminal
+// Define COMP_HAND for pico-delaygen in Littll Endian for UART terminal
 // emulators.
 // #define COMP_HAND
 
