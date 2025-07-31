@@ -8,14 +8,15 @@
 static const uint dtrigger_input_pin = 18;
 static const uint trigger_output_pin = 19;
 #else
-static const uint trigger_input_pin = 9;
-static const uint trigger_output_pin = 6;
+static const uint trigger_input_pin = 15;
+static const uint trigger_output_pin = 16;
 #endif
 static const uint reset_pin = 2;
 
 int main() {
   init_gpios(reset_pin);
   stdio_init_all();
+
   while (!tud_cdc_connected()) {
     /* If the Pico PCB is not conntected to USB it
     will IDLE here and toggle the board LED*/

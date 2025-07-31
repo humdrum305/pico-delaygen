@@ -6,20 +6,47 @@
 #include "square.pio.h"
 #include <stdio.h>
 
+#include "pico/binary_info.h"
+#include "pico/stdlib.h"
+
+#ifdef CYW43_WL_GPIO_LED_PIN
+#include "pico/cyw43_arch.h"
+#endif
+
+// Set an LED_TYPE variable - 0 is default, 1 is connected to WIFI chip
+// Note that LED_TYPE == 1 is only supported when initially compiled for
+// a board with PICO_CYW43_SUPPORTED (eg pico_w), else the required
+// libraries won't be present
+bi_decl(bi_program_feature_group(0x1111, 0, "LED Configuration"));
+#if defined(PICO_DEFAULT_LED_PIN)
+// the tag and id are not important as picotool filters based on the
+// variable name, so just set them to 0
+bi_decl(bi_ptr_int32(0x1111, 0, LED_TYPE, 0));
+bi_decl(bi_ptr_int32(0x1111, 0, LED_PIN, PICO_DEFAULT_LED_PIN));
+#elif defined(CYW43_WL_GPIO_LED_PIN)
+bi_decl(bi_ptr_int32(0x1111, 0, LED_TYPE, 1));
+bi_decl(bi_ptr_int32(0x1111, 0, LED_PIN, CYW43_WL_GPIO_LED_PIN));
+#else
+bi_decl(bi_ptr_int32(0x1111, 0, LED_TYPE, 0));
+bi_decl(bi_ptr_int32(0x1111, 0, LED_PIN, 25));
+#endif
+
+// static const uint led_pin = PICO_DEFAULT_LED_PIN; // 25; //
+
 // Define if using Pico Debug 'n Dump PCB
 // #define USE_PDND
 
 // Define for debugging; will have to handle all the extra serial prints, though
-// #define DEBUG
-#ifdef DEBUG
+// #define DBPRINT
+#ifdef DBPRINT
 #define DEBUG_PRINT(fmt, args...) printf(fmt, ##args)
 #else
 #define DEBUG_PRINT(fmt, args...) /* Don't do anything in release builds */
 #endif
 
-// Define COMP_HAND for pico-delaygen in Littll Endian for UART terminal
+// Define EMU for pico-delaygen in Littll Endian for UART terminal
 // emulators.
-// #define COMP_HAND
+// #define EMU
 
 // variable is true if device
 // waiting for an input pulse
@@ -39,19 +66,47 @@ static PIO pio = pio0;
 // global variable for SM instance
 static uint sm = -1;
 
-static const uint led_pin = PICO_DEFAULT_LED_PIN;
+// Perform initialisation
+int pico_led_init(void) {
+  if (LED_TYPE == 0) {
+    // A device like Pico that uses a GPIO for the LED so we can
+    // use normal GPIO functionality to turn the led on and off
+    gpio_init(LED_PIN);
+    gpio_set_dir(LED_PIN, GPIO_OUT);
+    return PICO_OK;
+#ifdef CYW43_WL_GPIO_LED_PIN
+  } else if (LED_TYPE == 1) {
+    // For Pico W devices we need to initialise the driver etc
+    return cyw43_arch_init();
+#endif
+  } else {
+    return PICO_ERROR_INVALID_DATA;
+  }
+}
+
+// Turn the led on or off
+void pico_set_led(bool led_on) {
+  if (LED_TYPE == 0) {
+    // Just set the GPIO on or off
+    gpio_put(LED_PIN, led_on);
+#ifdef CYW43_WL_GPIO_LED_PIN
+  } else if (LED_TYPE == 1) {
+    // Ask the wifi "driver" to set the GPIO on or off
+    cyw43_arch_gpio_put(LED_PIN, led_on);
+#endif
+  }
+}
 
 void irq1_callback() {
   waiting_for_pulse = false;
   // glitching finished, turn off LED
-  gpio_put(led_pin, false);
+  pico_set_led(false);
 }
 void irq0_callback() { waiting_for_pulse = true; }
 
 void init_gpios(uint reset_output_pin) {
-  gpio_init(led_pin);
+  pico_led_init();
   gpio_init(reset_output_pin);
-  gpio_set_dir(led_pin, GPIO_OUT);
   gpio_set_dir(reset_output_pin, GPIO_OUT);
   gpio_put(reset_output_pin, true);
 }
@@ -66,11 +121,23 @@ void init_pios() {
 }
 
 void reset_glitcher() {
-  gpio_put(led_pin, false);
+  pico_set_led(false);
   waiting_for_pulse = false;
   pio_sm_set_enabled(pio, sm, false);
 }
-void toggle_led() { gpio_put(led_pin, !gpio_get(led_pin)); }
+void toggle_led() {
+  bool current = false;
+  if (LED_TYPE == 0) {
+    current = gpio_get(LED_PIN);
+    gpio_put(LED_PIN, !current);
+#ifdef CYW43_WL_GPIO_LED_PIN
+  } else if (LED_TYPE == 1) {
+    current = cyw43_arch_gpio_get(LED_PIN);
+    cyw43_arch_gpio_put(LED_PIN, !current);
+#endif
+  }
+}
+
 uint32_t Reverse32(uint32_t value) {
   return (((value & 0x000000FF) << 24) | ((value & 0x0000FF00) << 8) |
           ((value & 0x00FF0000) >> 8) | ((value & 0xFF000000) >> 24));
@@ -90,7 +157,7 @@ void set_glitch_pulse_width() {
 void set_delay_from_trigger() {
   uint32_t delay_len = 0;
   fread(&delay_len, sizeof(char), 4, stdin);
-#ifndef COMP_HAND
+#ifndef EMU
   delay_len = Reverse32(delay_len);
 #endif
   DEBUG_PRINT("Got delay length: %lu\n", delay_len);
@@ -118,7 +185,7 @@ void print_current_glitch_timings() {
 
 void glitch(uint trigger_input_pin, uint trigger_output_pin) {
   // glitching starting, turn on LED
-  gpio_put(led_pin, true);
+  pico_set_led(true);
   waiting_for_pulse = false;
 
   // Get first free state machine in PIO 0

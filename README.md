@@ -44,8 +44,8 @@ Alternative commands for hand driven mode.
 
 Adjust `src/main.h` to modify behavior:
 
-- `#define COMP_HAND` — Use **Little Endian** (for UART terminal emulators).
-- `#define DEBUG` — Enable verbose UART output.
+- `#define EMU` — Use **Little Endian** (for UART terminal emulators).
+- `#define DBPRINT` — Enable verbose UART output.
 - `#define USE_PDND` — Support [Pico Debug’n’Dump PCB](https://pdnd.stacksmashing.net/)
 ### Default Pinout
 - **Trigger (Input):** Pin 9  
@@ -62,7 +62,17 @@ PICO_SDK_PATH=/path/to/pico-sdk cmake -S . -B build
 cmake --build build
 ```
 
+## ⚡ Flashing
+```bash
+picotool reboot -f
+picotool load -v build/pico-delaygen.elf -f
+```
 ## ⚠️ Potential Issues
 
 - UART terminal emulators may not trigger `tud_cdc_connected`, causing the Pico to resrc/main in IDLE state.
-- UART terminal emulators typically send characters in **Little Endian** format. To support this, undefine `COMP_HAND` in `src/main.h` (see Configuration Options).(#configuration-options) for details.
+- UART terminal emulators typically send characters in **Little Endian** format. To support this, undefine `EMU` in `src/main.h` (see Configuration Options).(#configuration-options) for details.
+
+## Known Issues
+-  PIOs don't  seem to work yet.
+
+
